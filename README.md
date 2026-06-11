@@ -1,138 +1,91 @@
-# 🌊 Sistema IoT para Monitoramento de Nível de Água com MQTT
+# Sistema IoT para Monitoramento de Nível de Água Utilizando MQTT
 
-## 📌 Descrição do Projeto
+## Descrição
 
-Este projeto apresenta o desenvolvimento de um sistema IoT capaz de monitorar o nível de água em tempo real utilizando o microcontrolador ESP32, sensor ultrassônico HC-SR04 e comunicação via protocolo MQTT.
+Este projeto foi desenvolvido para a disciplina Objetos Inteligentes Conectados e tem como objetivo realizar o monitoramento do nível da água em tempo real utilizando tecnologias de Internet das Coisas (IoT).
 
-A solução foi desenvolvida com foco em aplicações de prevenção de enchentes urbanas, oferecendo uma alternativa de baixo custo, eficiente e com monitoramento remoto.
+O sistema utiliza um sensor ultrassônico HC-SR04 conectado a um microcontrolador ESP32 para medir continuamente o nível da água em um reservatório. Os dados coletados são processados pelo ESP32 e enviados através do protocolo MQTT para monitoramento remoto.
 
----
-
-## 🎯 Objetivo
-
-Desenvolver um sistema capaz de:
-
-- Monitorar o nível da água em tempo real
-- Enviar dados via internet utilizando MQTT
-- Acionar alertas locais (LED e buzzer)
-- Permitir monitoramento remoto por meio de broker MQTT
+Quando o nível da água ultrapassa o limite crítico configurado (80% da capacidade do reservatório), o sistema aciona automaticamente um LED e um buzzer para indicar situação de alerta.
 
 ---
 
-## ⚙️ Tecnologias Utilizadas
+## Componentes Utilizados
 
-- ESP32
-- Sensor Ultrassônico HC-SR04
-- Protocolo MQTT
-- Arduino IDE
-- Wi-Fi (Comunicação)
-- Protoboard e Jumpers
-
----
-
-## 🧰 Componentes Utilizados
-
-- ESP32
-- Sensor HC-SR04
-- LED
-- Buzzer
-- Resistores
-- Protoboard
-- Jumpers
+* ESP32
+* Sensor ultrassônico HC-SR04
+* LED
+* Buzzer
+* Protoboard
+* Cabos Jumpers
 
 ---
 
-## 🔌 Esquema do Circuito
+## Funcionamento
 
-📷 O circuito do projeto pode ser visualizado abaixo:
-
-
----
-
-## 🔄 Funcionamento do Sistema
-
-O sistema funciona da seguinte forma:
-
-1. O ESP32 é inicializado e conectado à rede Wi-Fi
-2. É realizada a conexão com o broker MQTT
-3. O sensor ultrassônico mede a distância da água
-4. O sistema calcula o nível da água
-5. Se o nível ultrapassar o limite crítico:
-   - LED é acionado
-   - Buzzer emite som
-6. Os dados são enviados via MQTT
-7. O sistema pode receber comandos remotos para acionamento dos atuadores
+1. O sensor HC-SR04 mede a distância entre o sensor e a superfície da água.
+2. O ESP32 calcula o percentual de ocupação do reservatório.
+3. O nível é enviado para um broker MQTT.
+4. Quando o nível ultrapassa 80%, o LED e o buzzer são acionados.
+5. Os dados podem ser acompanhados remotamente em tempo real.
 
 ---
 
-## 🔁 Fluxo do Sistema
+## Comunicação MQTT
 
-📷 Fluxograma do funcionamento:
+### Broker
 
+broker.hivemq.com
 
----
+### Porta
 
-## 📡 Comunicação MQTT
+1883
 
-O sistema utiliza os seguintes tópicos:
+### Tópicos Utilizados
 
-- `sensor/nivel_agua` → envio de dados do sensor
-- `atuador/alerta` → recebimento de comandos
+sensor/nivel_agua
 
----
+Publicação das leituras do sensor.
 
-## 📊 Resultados Obtidos
+atuador/alerta
 
-O sistema apresentou:
-
-- Baixa latência na leitura do sensor
-- Resposta rápida no acionamento de atuadores
-- Comunicação estável via MQTT
-
-Tempo médio de resposta:
-
-- Sensor: 125 ms  
-- Atuador: 88 ms  
+Publicação dos eventos de alerta do sistema.
 
 ---
 
-## 📹 Vídeo do Projeto
+## Estrutura do Repositório
 
-🔗 
+codigo/
 
----
+Código-fonte do ESP32.
 
-## 💻 Código do Projeto
+documentacao/
 
-O código desenvolvido realiza:
+Artigo científico do projeto.
 
-- Leitura do sensor ultrassônico
-- Processamento do nível de água
-- Comunicação com broker MQTT
-- Acionamento de atuadores
+imagens/
 
----
+Imagens do protótipo, MQTT e monitor serial.
 
-## 📈 Possíveis Melhorias
+diagramas/
 
-- Desenvolvimento de aplicativo mobile
-- Armazenamento em nuvem
-- Uso de energia solar
-- Integração com sistemas de alerta urbano
+Fluxograma e esquema eletrônico.
 
 ---
 
-## 📚 Referências
+## Demonstração
 
-- MQTT. Disponível em: http://mqtt.org
-- Arduino. Disponível em: https://www.arduino.cc
-- BERTOLETI, P. Controle e Monitoramento IoT com NodeMCU e MQTT
-- NODE-RED. Interacting with Arduino
+O projeto realiza:
+
+* Monitoramento contínuo do nível da água;
+* Envio de dados utilizando MQTT;
+* Acionamento de alertas visuais e sonoros;
+* Monitoramento remoto em tempo real.
 
 ---
 
-## 👨‍💻 Autor
+## Autor
 
-**Luís Felippe de Carvalho Monteiro**  
-Análise e Desenvolvimento de Sistemas – 5º Semestre  
-Universidade Presbiteriana Mackenzie
+Luís Felippe de Carvalho Monteiro
+
+RA: 10415452
