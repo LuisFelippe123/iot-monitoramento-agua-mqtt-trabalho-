@@ -8,6 +8,7 @@ const char* password = "SUA_SENHA";
 // ===== CONFIGURAÇÃO MQTT =====
 const char* mqtt_server = "broker.hivemq.com";
 const int mqtt_port = 1883;
+
 const char* topic_pub = "sensor/nivel_agua";
 const char* topic_sub = "atuador/alerta";
 
@@ -17,118 +18,177 @@ const char* topic_sub = "atuador/alerta";
 #define LED_PIN 21
 #define BUZZER_PIN 22
 
+// ===== CONFIGURAÇÃO DO RESERVATÓRIO =====
+// Altura útil considerada para os testes
+const float ALTURA_MAXIMA = 50.0; // cm
+
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-// ===== FUNÇÃO WIFI =====
+// ===== WIFI =====
 void setup_wifi() {
-  delay(10);
-  Serial.println();
-  Serial.print("Conectando ao WiFi...");
-  
-  WiFi.begin(ssid, password);
+delay(10);
 
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
+Serial.println();
+Serial.println("Conectando ao Wi-Fi...");
 
-  Serial.println("\nWiFi conectado!");
+WiFi.begin(ssid, password);
+
+while (WiFi.status() != WL_CONNECTED) {
+delay(500);
+Serial.print(".");
 }
 
-// ===== RECEBER COMANDOS MQTT =====
+Serial.println();
+Serial.println("Wi-Fi conectado!");
+Serial.print("IP: ");
+Serial.println(WiFi.localIP());
+}
+
+// ===== MQTT CALLBACK =====
 void callback(char* topic, byte* message, unsigned int length) {
-  Serial.print("Mensagem recebida: ");
 
-  String msg;
-  for (int i = 0; i < length; i++) {
-    msg += (char)message[i];
-  }
+String msg;
 
-  Serial.println(msg);
-
-  if (msg == "ON") {
-    digitalWrite(LED_PIN, HIGH);
-    digitalWrite(BUZZER_PIN, HIGH);
-  } else if (msg == "OFF") {
-    digitalWrite(LED_PIN, LOW);
-    digitalWrite(BUZZER_PIN, LOW);
-  }
+for (int i = 0; i < length; i++) {
+msg += (char)message[i];
 }
 
-// ===== CONECTAR MQTT =====
+Serial.print("Mensagem recebida: ");
+Serial.println(msg);
+
+if (msg == "ON") {
+digitalWrite(LED_PIN, HIGH);
+digitalWrite(BUZZER_PIN, HIGH);
+}
+
+if (msg == "OFF") {
+digitalWrite(LED_PIN, LOW);
+digitalWrite(BUZZER_PIN, LOW);
+}
+}
+
+// ===== RECONEXÃO MQTT =====
 void reconnect() {
-  while (!client.connected()) {
-    Serial.print("Conectando ao MQTT...");
 
-    if (client.connect("ESP32Client")) {
-      Serial.println("conectado!");
-      client.subscribe(topic_sub);
-    } else {
-      Serial.print("falhou, rc=");
-      Serial.print(client.state());
-      delay(2000);
-    }
-  }
+while (!client.connected()) {
+
+```
+Serial.print("Conectando ao broker MQTT...");
+
+if (client.connect("ESP32Client")) {
+
+  Serial.println(" conectado!");
+
+  client.subscribe(topic_sub);
+
+} else {
+
+  Serial.print("Falha. Código: ");
+  Serial.println(client.state());
+
+  delay(2000);
+}
+```
+
+}
 }
 
-// ===== MEDIR DISTÂNCIA =====
+// ===== LEITURA HC-SR04 =====
 float medirDistancia() {
-  digitalWrite(TRIG_PIN, LOW);
-  delayMicroseconds(2);
-  
-  digitalWrite(TRIG_PIN, HIGH);
-  delayMicroseconds(10);
-  
-  digitalWrite(TRIG_PIN, LOW);
 
-  long duration = pulseIn(ECHO_PIN, HIGH);
-  float distance = duration * 0.034 / 2;
+digitalWrite(TRIG_PIN, LOW);
+delayMicroseconds(2);
 
-  return distance;
+digitalWrite(TRIG_PIN, HIGH);
+delayMicroseconds(10);
+
+digitalWrite(TRIG_PIN, LOW);
+
+long duration = pulseIn(ECHO_PIN, HIGH);
+
+float distancia = duration * 0.034 / 2;
+
+return distancia;
 }
 
 // ===== SETUP =====
 void setup() {
-  Serial.begin(115200);
 
-  pinMode(TRIG_PIN, OUTPUT);
-  pinMode(ECHO_PIN, INPUT);
-  pinMode(LED_PIN, OUTPUT);
-  pinMode(BUZZER_PIN, OUTPUT);
+Serial.begin(115200);
 
-  setup_wifi();
-  client.setServer(mqtt_server, mqtt_port);
-  client.setCallback(callback);
+pinMode(TRIG_PIN, OUTPUT);
+pinMode(ECHO_PIN, INPUT);
+
+pinMode(LED_PIN, OUTPUT);
+pinMode(BUZZER_PIN, OUTPUT);
+
+digitalWrite(LED_PIN, LOW);
+digitalWrite(BUZZER_PIN, LOW);
+
+setup_wifi();
+
+client.setServer(mqtt_server, mqtt_port);
+client.setCallback(callback);
+
+Serial.println("Sistema iniciado.");
 }
 
 // ===== LOOP =====
 void loop() {
-  if (!client.connected()) {
-    reconnect();
-  }
 
-  client.loop();
+if (!client.connected()) {
+reconnect();
+}
 
-  float distancia = medirDistancia();
+client.loop();
 
-  Serial.print("Distancia: ");
-  Serial.println(distancia);
+float distancia = medirDistancia();
 
-  // Definir limite crítico (ex: < 10 cm)
-  if (distancia < 10) {
-    Serial.println("ALERTA: Nivel alto!");
-    
-    digitalWrite(LED_PIN, HIGH);
-    digitalWrite(BUZZER_PIN, HIGH);
+// Cálculo do percentual de ocupação
+float nivel = ((ALTURA_MAXIMA - distancia) / ALTURA_MAXIMA) * 100;
 
-    client.publish(topic_pub, "ALERTA NIVEL ALTO");
-  } else {
-    digitalWrite(LED_PIN, LOW);
-    digitalWrite(BUZZER_PIN, LOW);
+// Limitar valores
+if (nivel < 0) nivel = 0;
+if (nivel > 100) nivel = 100;
 
-    client.publish(topic_pub, "Nivel normal");
-  }
+Serial.print("Distancia: ");
+Serial.print(distancia);
+Serial.print(" cm | Nivel: ");
+Serial.print((int)nivel);
+Serial.println(" %");
 
-  delay(2000);
+char mqttMsg[10];
+sprintf(mqttMsg, "%d %%", (int)nivel);
+
+client.publish(topic_pub, mqttMsg);
+
+if (nivel >= 80) {
+
+```
+Serial.println("Status: ALERTA! Nivel critico atingido!");
+
+digitalWrite(LED_PIN, HIGH);
+digitalWrite(BUZZER_PIN, HIGH);
+
+client.publish(topic_sub, "ON");
+```
+
+} else {
+
+```
+Serial.println("Status: NORMAL");
+
+digitalWrite(LED_PIN, LOW);
+digitalWrite(BUZZER_PIN, LOW);
+
+client.publish(topic_sub, "OFF");
+```
+
+}
+
+Serial.println("MQTT publicado com sucesso!");
+Serial.println();
+
+delay(2000);
 }
